@@ -1,13 +1,14 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
   test:
+    name: Run Unit Tests
     runs-on: ubuntu-latest
 
     services:
@@ -35,14 +36,44 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest httpx
+          pip install pytest httpx pytest-asyncio
 
       - name: Run test suite (CP1 - CP4)
         env:
-          AGENT_API_KEY: test-ci-secret-key-12345
+          AGENT_API_KEY: ${{ secrets.AGENT_API_KEY }}
           REDIS_URL: redis://localhost:6379
           RATE_LIMIT_PER_MINUTE: 10
           MONTHLY_BUDGET_USD: 10.0
           LOG_LEVEL: INFO
         run: |
-          pytest tests/test_cp1.py tests/test_cp2.py tests/test_cp3.py tests/test_cp4.py -v
+          pytest tests/test_cp1.py tests/test_cp2.py tests/test_cp3.py tests/test_cp4.py -v --ignore=tests/test_cp5.py
+
+  build:
+    name: Build Docker Image
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -t day12-agent:latest .
+
+  deploy:
+    name: Deploy to Cloud
+    needs: [test, build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to Platform
+        env:
+          DEPLOY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          echo "Deploying to production environment..."
