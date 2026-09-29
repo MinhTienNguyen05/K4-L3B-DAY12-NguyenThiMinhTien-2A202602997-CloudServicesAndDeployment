@@ -110,7 +110,6 @@ def ready(store: ConversationStore = Depends(get_store)):
         return JSONResponse(status_code=503, content={"status": "not ready", "redis": False})
     return {"status": "ready", "redis": True}
 
-
 # ─────────────────────────────────────────────────────────────
 # Endpoint chính
 # ─────────────────────────────────────────────────────────────
