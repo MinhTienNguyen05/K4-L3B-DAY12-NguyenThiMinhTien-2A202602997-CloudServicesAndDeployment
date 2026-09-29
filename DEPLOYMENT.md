@@ -8,51 +8,50 @@
 
 ## Thông Tin Học Viên
 
-| Mục | Nội dung |
-|-----|----------|
-| Họ và tên | (điền họ tên) |
-| Mã học viên | (điền mã học viên) |
-| Repo | (điền link repo K4-L3B-DAY12-HoVaTen-MSSV-CloudServicesAndDeployment) |
+| Mục           | Nội dung                                                               |
+| -------------- | ----------------------------------------------------------------------- |
+| Họ và tên   | Nguyễn Thị Minh Tiến                                                   |
+| Mã học viên | 2A202602997                                                            |
+| Repo           | K4-L3B-DAY12-NguyenThiMinhTien-2A202602997-CloudServicesAndDeployment  |
 
 ## Service
 
-| Mục | Nội dung |
-|-----|----------|
-| Public URL | https://TODO-thay-bang-url-that.up.railway.app |
-| Platform | Railway / Render / Cloud Run — (điền platform bạn dùng) |
-| Ngày deploy | (điền ngày) |
+| Mục         | Nội dung                                                                            |
+| ------------ | ------------------------------------------------------------------------------------ |
+| Public URL   | https://day12-agent-production-defb.up.railway.app                                    |
+| Platform     | Railway                                                                             |
+| Ngày deploy | 2026-09-29                                                                          |
 
 ## Biến Môi Trường Đã Set Trên Cloud
 
 Ghi tên biến và **nguồn giá trị**, không ghi giá trị:
 
-| Biến | Đã set | Ghi chú |
-|------|--------|---------|
-| `PORT` | ✅ | platform tự gán |
-| `AGENT_API_KEY` | ✅ | đặt trong dashboard, không nằm trong repo |
-| `REDIS_URL` | ✅ | (điền: Redis add-on của platform / Upstash / ...) |
-| `RATE_LIMIT_PER_MINUTE` | ✅ | 10 |
-| `MONTHLY_BUDGET_USD` | ✅ | 10.0 |
-| `LOG_LEVEL` | ✅ | INFO |
+| Biến                     | Đã set | Ghi chú                                             |
+| ------------------------- | -------- | ---------------------------------------------------- |
+| `PORT`                  | ✅       | platform tự gán                                    |
+| `AGENT_API_KEY`         | ✅       | đặt trong dashboard, không nằm trong repo        |
+| `REDIS_URL`             | ✅       | Redis add-on của Railway (${{Redis.REDIS_URL}})     |
+| `RATE_LIMIT_PER_MINUTE` | ✅       | 10                                                   |
+| `MONTHLY_BUDGET_USD`    | ✅       | 10.0                                                 |
+| `LOG_LEVEL`             | ✅       | INFO                                                 |
 
 ## Lệnh Kiểm Tra
 
 Thay `<URL>` bằng Public URL ở trên:
 
-```bash
 # 1. Liveness — mong đợi 200 {"status":"ok"}
-curl -i <URL>/health
+curl -i https://day12-agent-production-defb.up.railway.app/health
 
 # 2. Readiness — mong đợi 200 {"status":"ready"} (đã nối được Redis)
-curl -i <URL>/ready
+curl -i https://day12-agent-production-defb.up.railway.app/ready
 
 # 3. Không có API key — mong đợi 401
-curl -i -X POST <URL>/ask \
+curl -i -X POST https://day12-agent-production-defb.up.railway.app/ask \
   -H "Content-Type: application/json" \
   -d '{"question":"Hello"}'
 
 # 4. Có API key — mong đợi 200 kèm câu trả lời
-curl -i -X POST <URL>/ask \
+curl -i -X POST https://day12-agent-production-defb.up.railway.app/ask \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $AGENT_API_KEY" \
   -H "X-User-Id: sv-test" \
@@ -60,42 +59,65 @@ curl -i -X POST <URL>/ask \
 
 # 5. Rate limit — gọi 15 lần, những lần cuối phải trả 429
 for i in $(seq 1 15); do
-  curl -s -o /dev/null -w "%{http_code} " -X POST <URL>/ask \
+  curl -s -o /dev/null -w "%{http_code} " -X POST https://day12-agent-production-defb.up.railway.app/ask \
     -H "Content-Type: application/json" \
     -H "X-API-Key: $AGENT_API_KEY" \
     -H "X-User-Id: sv-test" \
     -d '{"question":"test"}'
 done; echo
-```
+
 
 ## Kết Quả Chạy Thật
+```text
+1.
+HTTP/2 200
+content-type: application/json
+date: Tue, 29 Sep 2026 05:28:32 GMT
+server: railway-hikari
+x-railway-request-id: VmeT8M5OSYeXzIuixtoGcA
+content-length: 57
+x-hikari-trace: sin1.hs0s
+x-railway-edge: sin1
 
-Dán output của các lệnh trên vào đây:
+{"status":"ok","service":"day12-agent","version":"1.0.0"}%
 
-```
-(điền output)
-```
+2.
+HTTP/2 200
+content-type: application/json
+date: Tue, 29 Sep 2026 05:28:44 GMT
+server: railway-hikari
+x-railway-request-id: R49U8h_vS8aG6OE09o6EoQ
+content-length: 31
+x-hikari-trace: hkg1.hn7d
+x-railway-edge: hkg1
 
-## Ảnh Chụp Màn Hình
+{"status":"ready","redis":true}%
 
-Đặt ảnh trong thư mục `screenshots/`:
+3.
+HTTP/2 401
+content-type: application/json
+date: Tue, 29 Sep 2026 05:28:51 GMT
+server: railway-hikari
+x-railway-request-id: 2dE7bIm7Sb-f1UcGCYBc-A
+content-length: 39
+x-hikari-trace: hkg1.aebn
+x-railway-edge: hkg1
 
-- `screenshots/dashboard.png` — trang quản lý service trên platform
-- `screenshots/health.png` — kết quả gọi `/health` từ trình duyệt hoặc curl
+{"detail":"invalid or missing API key"}%
 
----
+4.
+HTTP/2 401
+content-type: application/json
+date: Tue, 29 Sep 2026 05:28:58 GMT
+server: railway-hikari
+x-railway-request-id: mGTy7uXXStmCG8sZLPU1MQ
+content-length: 39
+x-hikari-trace: sin1.tr00
+x-railway-edge: sin1
 
-## Nếu Dùng Phương Án Dự Phòng
+{"detail":"invalid or missing API key"}%
 
-Không đăng ký được tài khoản cloud? Vẫn nộp được bài, nhưng CP5 tối đa 60% điểm:
 
-1. Đặt `LOCAL_FALLBACK=true` trong `.env`
-2. Chạy `docker compose up -d` rồi kiểm tra `docker compose ps`
-3. Chụp màn hình vào `screenshots/`
-4. Chạy `pytest tests/test_cp5.py -v` — bộ test sẽ tự chuyển sang kiểm tra
-   `http://localhost:8000`
-5. Ghi rõ lý do không deploy được vào phần dưới đây:
-
-```
-(điền lý do nếu dùng phương án dự phòng, ngược lại xóa mục này)
+5.
+200 200 200 200 200 200 200 200 200 200 429 429 429 429 429 
 ```
